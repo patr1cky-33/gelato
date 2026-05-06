@@ -1,0 +1,1501 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Tuoi Gelato Kiosk</title>
+    <style>
+        :root { 
+            --bg-color: #ffffff; 
+            --point-green: #2e7d32; 
+            --light-green: #e8f5e9;
+            --border-green: #a5d6a7; 
+            --text-color: #1b5e20; 
+            --alert-red: #d32f2f; 
+            --admin-pale-purple: #f3e5f5; 
+            --dark-purple: #6a1b9a;
+            --accent-mint: #00897b;
+        }
+        body { 
+            font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, sans-serif; 
+            background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%);
+            margin: 0; padding: 20px; color: var(--text-color); 
+            -webkit-user-select: none; user-select: none;
+        }
+        .container { 
+            max-width: 500px; margin: auto; background: var(--bg-color); 
+            padding: 25px; border-radius: 30px; 
+            box-shadow: 0 15px 35px rgba(46, 125, 50, 0.15); 
+            min-height: 85vh; position: relative; 
+        }
+        h2 { 
+            font-size: 1.4rem; margin-bottom: 25px; 
+            color: var(--point-green); font-weight: 800; text-align: center; 
+        }
+        h3 { 
+            font-size: 1.1rem; border-left: 4px solid var(--point-green); 
+            padding-left: 10px; margin: 25px 0 10px 0; color: var(--point-green); 
+        }
+        .page { display: none; }
+        .active { display: block; }
+        
+        button { 
+            width: 100%; padding: 18px; margin: 8px 0; font-size: 1.1rem; 
+            border: 1px solid var(--border-green); border-radius: 18px; 
+            cursor: pointer; transition: all 0.2s; background: #fff; 
+            font-weight: bold; color: var(--text-color); box-sizing: border-box; 
+        }
+        button:active { transform: scale(0.97); background: var(--light-green); }
+        .btn-primary { 
+            background: linear-gradient(135deg, var(--point-green) 0%, var(--accent-mint) 100%); 
+            color: white; border: none; 
+        }
+        .btn-secondary { 
+            background: none; border: none; color: #757575; 
+            text-decoration: underline; font-size: 0.95rem; margin-top: 10px; 
+        }
+        .btn-admin { 
+            background-color: var(--admin-pale-purple); border: 1px solid #e1bee7; 
+            color: #9c27b0; margin-top: 20px; font-size: 0.85rem; 
+            padding: 12px; font-weight: normal; 
+        }
+
+        #toast {
+            position: fixed; top: -50px; left: 50%; transform: translateX(-50%);
+            background: linear-gradient(135deg, var(--point-green), var(--accent-mint)); 
+            color: #fff; text-align: center;
+            border-radius: 30px; padding: 15px 30px; z-index: 9999; font-weight: bold;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3); opacity: 0; pointer-events: none;
+            transition: top 0.4s ease, opacity 0.4s ease;
+        }
+        #toast.show { top: 40px; opacity: 1; }
+
+        .flavor-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .flavor-btn { 
+            display: flex; flex-direction: column; justify-content: center; 
+            align-items: center; border-width: 2px; word-break: keep-all; 
+            line-height: 1.2; position: relative; width: 100%; text-align: center; 
+            min-height: 75px;
+        }
+        .flavor-btn.selected { 
+            border-color: var(--point-green); 
+            background: var(--light-green); 
+            box-shadow: 0 0 0 3px rgba(46, 125, 50, 0.2);
+        }
+        .extra-cost { 
+            color: var(--alert-red); font-size: 0.85rem; 
+            font-weight: bold; margin-top: 4px; 
+        }
+        
+        .flavor-btn.sold-out { 
+            opacity: 0.4; cursor: not-allowed; background-color: #f5f5f5; 
+            border-color: #e0e0e0; overflow: hidden; 
+        }
+        .flavor-btn.sold-out::after { 
+            content: attr(data-soldout-text); position: absolute; 
+            top: 50%; left: 50%; 
+            transform: translate(-50%, -50%) rotate(-10deg); 
+            background: rgba(211,47,47,0.95); 
+            color: white; padding: 6px 12px; font-weight: 900; 
+            font-size: 1.05rem; border-radius: 8px; white-space: nowrap; 
+            pointer-events: none; box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+
+        .admin-input { 
+            width: 100%; padding: 12px; margin: 5px 0; 
+            border: 1px solid #e1bee7; border-radius: 10px; box-sizing: border-box; 
+        }
+        .extra-select { display: flex; gap: 5px; }
+        .extra-select button { padding: 10px; font-size: 0.9rem; }
+        .extra-select button.active { 
+            background: var(--light-green); color: var(--point-green); 
+            border-color: var(--point-green); 
+        }
+        .summary-box { 
+            background: #fff; padding: 20px; border-radius: 20px; 
+            border: 2px dashed var(--point-green); 
+        }
+
+        .master-item-row { 
+            display: flex; gap: 5px; align-items: center; margin-bottom: 5px; 
+        }
+        .btn-delete { 
+            width: 65px; padding: 12px; background: #ffebee; 
+            border: 1px solid #ffcdd2; color: #c62828; font-size: 0.85rem; 
+            flex-shrink: 0; border-radius: 12px; transition: all 0.3s ease; 
+        }
+
+        @keyframes pulseAlertSoft {
+            0% { transform: scale(1); box-shadow: 0 4px 10px rgba(46, 125, 50, 0.15); }
+            50% { transform: scale(1.02); box-shadow: 0 8px 20px rgba(46, 125, 50, 0.35); }
+            100% { transform: scale(1); box-shadow: 0 4px 10px rgba(46, 125, 50, 0.15); }
+        }
+        .blink-bg-soft { 
+            animation: pulseAlertSoft 2.5s ease-in-out infinite; 
+            cursor: pointer; transition: all 0.3s ease; 
+        }
+        .blink-bg-soft:active { transform: scale(0.95); }
+
+        .container-choice-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin: 20px 0;
+        }
+        .container-card {
+            background: white;
+            border: 3px solid var(--border-green);
+            border-radius: 20px;
+            padding: 20px 15px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+        }
+        .container-card:active {
+            transform: scale(0.95);
+            background: var(--light-green);
+        }
+        .container-card img {
+            width: 100%;
+            max-width: 120px;
+            height: 120px;
+            object-fit: cover;
+            border-radius: 15px;
+            margin-bottom: 10px;
+        }
+        .container-card h3 {
+            margin: 0;
+            padding: 0;
+            border: none;
+            font-size: 1.3rem;
+            color: var(--point-green);
+        }
+        .container-card .price {
+            font-size: 1.1rem;
+            font-weight: bold;
+            color: var(--accent-mint);
+        }
+        .container-card .description {
+            font-size: 0.85rem;
+            color: #666;
+            line-height: 1.4;
+            margin-top: 5px;
+        }
+        .container-card .warning {
+            font-size: 0.75rem;
+            font-weight: bold;
+            margin-top: 5px;
+        }
+
+        .topping-badge {
+            display: inline-block;
+            background: #fff3e0;
+            color: #e65100;
+            padding: 2px 8px;
+            border-radius: 8px;
+            font-size: 0.7rem;
+            font-weight: bold;
+            margin-top: 3px;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 10000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+            animation: fadeIn 0.3s;
+        }
+        .modal.active {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 25px;
+            max-width: 400px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+            animation: slideUp 0.3s;
+            position: relative;
+        }
+        .modal-close {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            background: #f5f5f5;
+            border: none;
+            font-size: 1.5rem;
+            line-height: 1;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+            color: #666;
+        }
+        .modal-close:hover {
+            background: #e0e0e0;
+            transform: scale(1.1);
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        @keyframes slideUp {
+            from { transform: translateY(50px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        .topping-checkbox-item {
+            display: flex;
+            align-items: center;
+            padding: 12px;
+            margin: 8px 0;
+            border: 2px solid #e0e0e0;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .topping-checkbox-item:hover {
+            background: #f5f5f5;
+        }
+        .topping-checkbox-item.selected {
+            background: var(--light-green);
+            border-color: var(--point-green);
+        }
+        .topping-checkbox-item input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            margin-right: 10px;
+            cursor: pointer;
+        }
+        .topping-checkbox-item label {
+            flex: 1;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 500;
+        }
+    </style>
+</head>
+<body onload="loadData()">
+
+<div id="toast">알림 메시지</div>
+
+<div id="toppingModal" class="modal">
+    <div class="modal-content">
+        <button class="modal-close" onclick="closeModalAndCancel()">×</button>
+        <h2 id="modal-title" style="margin-top: 0; color: var(--point-green);">🍓 토핑 선택</h2>
+        <p id="modal-flavor-name" style="font-size: 1.2rem; font-weight: bold; text-align: center; margin: 15px 0;"></p>
+        
+        <div id="single-topping-options" style="display: none;">
+            <p id="modal-topping-list" style="color: #e65100; text-align: center; margin-bottom: 20px; font-weight: 500;"></p>
+            <button type="button" class="btn-primary" id="btn-with-topping" onclick="selectToppingOption(true)" style="margin-bottom: 10px;">✅ 토핑 포함</button>
+            <button type="button" id="btn-without-topping" onclick="selectToppingOption(false)" style="background: #f5f5f5;">❌ 토핑 제외</button>
+        </div>
+
+        <div id="multiple-topping-options" style="display: none;">
+            <p id="modal-instruction" style="color: #666; text-align: center; margin-bottom: 15px; font-size: 0.9rem;">원하는 토핑을 선택해주세요</p>
+            <div id="topping-checkbox-list"></div>
+            <button type="button" class="btn-primary" id="btn-confirm-toppings" onclick="confirmMultipleToppings()" style="margin-top: 20px;">✅ 선택 완료</button>
+            <button type="button" id="btn-no-topping" onclick="selectNoTopping()" style="background: #f5f5f5; margin-top: 10px;">❌ 토핑 없음</button>
+        </div>
+    </div>
+</div>
+
+<div class="container">
+    <div id="page0" class="page active">
+        <div style="font-size: 4rem; margin: 30px 0 10px 0; text-align: center;">🍦</div>
+        <h1 style="text-align: center; color: var(--point-green); font-size: 2.5rem; margin: 10px 0 40px 0; font-weight: 900; letter-spacing: 2px;">tuoi gelato</h1>
+        <h2>Select Language</h2>
+        <button type="button" onclick="setLanguage('en')">English</button>
+        <button type="button" onclick="setLanguage('zh-CN')">简体中文</button>
+        <button type="button" onclick="setLanguage('zh-TW')">繁體中文</button>
+        <button type="button" onclick="setLanguage('ja')">日本語</button>
+        <button type="button" class="btn-admin" onclick="goPage('Admin')">⚙️ Admin: 직원 설정</button>
+    </div>
+
+    <div id="page1" class="page">
+        <h2 class="t-container">Choose Your Style</h2>
+        <div class="container-choice-grid">
+            <div class="container-card" onclick="selectContainer('Cup', prices.cup)">
+                <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'%3E%3Cdefs%3E%3ClinearGradient id='cupGrad' x1='0%25' y1='0%25' x2='0%25' y2='100%25'%3E%3Cstop offset='0%25' style='stop-color:%23fff3e0;stop-opacity:1' /%3E%3Cstop offset='100%25' style='stop-color:%23ffe082;stop-opacity:1' /%3E%3C/linearGradient%3E%3ClinearGradient id='gelatoGrad' x1='0%25' y1='0%25' x2='0%25' y2='100%25'%3E%3Cstop offset='0%25' style='stop-color:%23f8bbd0;stop-opacity:1' /%3E%3Cstop offset='100%25' style='stop-color:%23f48fb1;stop-opacity:1' /%3E%3C/linearGradient%3E%3C/defs%3E%3Cpath d='M60 80 L60 160 Q60 170 70 170 L130 170 Q140 170 140 160 L140 80 Z' fill='url(%23cupGrad)' stroke='%23f57c00' stroke-width='3'/%3E%3Cellipse cx='100' cy='80' rx='42' ry='15' fill='url(%23gelatoGrad)' stroke='%23c2185b' stroke-width='2'/%3E%3Cellipse cx='100' cy='55' rx='35' ry='25' fill='%23c8e6c9' stroke='%232e7d32' stroke-width='2'/%3E%3Cellipse cx='100' cy='35' rx='28' ry='20' fill='%23fff9c4' stroke='%23f57f17' stroke-width='2'/%3E%3C/svg%3E" alt="Cup">
+                <h3 class="t-cup-title">Cup</h3>
+                <div class="price" id="cup-price-display">6,000₩</div>
+                <div class="description t-cup-desc">Dine-in or To-go</div>
+                <div class="warning t-cup-warn" style="color: var(--alert-red);">❄️❌ No insulation</div>
+            </div>
+            <div class="container-card" onclick="selectContainer('Box', 0)">
+                <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'%3E%3Cdefs%3E%3Cpattern id='foam' patternUnits='userSpaceOnUse' width='10' height='10'%3E%3Ccircle cx='5' cy='5' r='2' fill='%23e0e0e0'/%3E%3C/pattern%3E%3C/defs%3E%3Crect x='40' y='60' width='120' height='90' rx='8' fill='%23fafafa' stroke='%23bdbdbd' stroke-width='3'/%3E%3Crect x='40' y='60' width='120' height='15' fill='url(%23foam)' stroke='%23bdbdbd' stroke-width='2'/%3E%3Cline x1='100' y1='60' x2='100' y2='150' stroke='%23e0e0e0' stroke-width='2'/%3E%3Cline x1='40' y1='105' x2='160' y2='105' stroke='%23e0e0e0' stroke-width='2'/%3E%3Cellipse cx='70' cy='90' rx='20' ry='12' fill='%23f8bbd0'/%3E%3Cellipse cx='130' cy='90' rx='20' ry='12' fill='%23c8e6c9'/%3E%3Cellipse cx='70' cy='130' rx='20' ry='12' fill='%23fff9c4'/%3E%3Cellipse cx='130' cy='130' rx='20' ry='12' fill='%23ffccbc'/%3E%3C/svg%3E" alt="Box">
+                <h3 class="t-box-title">Box</h3>
+                <div class="price">S/M/L</div>
+                <div class="description t-box-desc">To-go only</div>
+                <div class="warning t-box-insulated" style="color: #2e7d32;">🧊✅ Insulated packaging</div>
+            </div>
+        </div>
+        <button type="button" onclick="goPage(0)" class="btn-secondary">← Back</button>
+    </div>
+
+    <div id="page1_5" class="page">
+        <h2>Box Size</h2>
+        <div class="t-box-warn" style="color:var(--alert-red); font-weight:bold; margin-bottom:15px; text-align:center; font-size:0.95rem;">To-go only / No dine-in</div>
+        <div id="box-size-buttons"></div>
+        <button type="button" onclick="goPage(1)" class="btn-secondary">← Back</button>
+    </div>
+
+    <div id="page2_5" class="page">
+        <h2>Delivery Time</h2>
+        <button type="button" onclick="setDeliveryTime('~ 30m')">~ 30 min</button>
+        <button type="button" onclick="setDeliveryTime('~ 1h')">~ 1 hour</button>
+        <button type="button" onclick="goPage('1_5')" class="btn-secondary">← Back</button>
+    </div>
+
+    <div id="page3" class="page">
+        <div id="page3-content"></div>
+    </div>
+
+    <div id="page4" class="page">
+        <div style="text-align: center; padding: 40px 20px;">
+            <div style="font-size: 4rem; margin-bottom: 20px;">✅</div>
+            <h2 class="t-added-cart" style="font-size: 1.8rem; margin-bottom: 40px;">Added to Cart!</h2>
+            <button type="button" class="btn-primary t-checkout-btn" onclick="goPage('4_5')" style="padding: 25px; font-size: 1.3rem; margin-bottom: 15px;">Check out</button>
+            <button type="button" class="t-add-more-btn" onclick="goPage(1)" style="padding: 25px; font-size: 1.3rem; background:var(--light-green); color: var(--point-green);">+ Add More</button>
+        </div>
+    </div>
+
+    <div id="page4_5" class="page">
+        <div style="text-align: center; padding: 20px;">
+            <h2 class="t-payment-method">Payment Method</h2>
+            <button type="button" class="t-card-btn" onclick="setPayment('Card')" style="padding: 25px; font-size: 1.3rem; margin-bottom: 15px; background:#e1f5fe; border-color:#81d4fa; color:#01579b;">💳 Card / Pay</button>
+            <button type="button" class="t-cash-btn" onclick="setPayment('Cash')" style="padding: 25px; font-size: 1.3rem; background:#fff3e0; border-color:#ffe082; color:#e65100;">💵 Cash / 현금</button>
+            <button type="button" onclick="goPage(4)" class="btn-secondary" style="margin-top: 20px;">← Back</button>
+        </div>
+    </div>
+    
+    <div id="page5" class="page">
+        <h2 class="t-summary">Summary</h2>
+        <div id="payment-method-display" style="background: linear-gradient(135deg, var(--point-green), var(--accent-mint)); color:white; padding:8px 15px; border-radius:10px; display:inline-block; margin-bottom:15px; font-weight:bold;"></div>
+        <div id="final-bill" class="summary-box"></div>
+        <div id="total-price-display" style="font-size:1.7rem; text-align:right; font-weight:900; margin-top:15px; color:var(--alert-red);"></div>
+        
+        <div id="show-staff-btn" class="t-show-staff blink-bg-soft" style="background-color: var(--light-green); color: var(--point-green); padding: 18px; border-radius: 15px; border: 2px solid var(--border-green); text-align: center; font-weight: 900; margin: 25px 0; font-size: 1.25rem; cursor: pointer;">
+            📱 이 화면을 직원에게 보여주세요!
+        </div>
+
+        <button type="button" class="btn-primary t-new-order" onclick="resetAll()" style="background:#757575; margin-top:10px; padding: 20px; font-size: 1.2rem;">New Order</button>
+    </div>
+
+    <div id="pageAdmin" class="page">
+        <h2 style="color:var(--dark-purple);">⚙️ Admin: 설정</h2>
+        <button type="button" class="btn-admin" onclick="goPage('AdminDaily')" style="background:#e1bee7; font-weight:bold; font-size:1rem; padding:18px;">📅 오늘의 맛 설정</button>
+        <button type="button" class="btn-admin" onclick="goPage('AdminList')" style="background:#e1bee7; font-weight:bold; font-size:1rem; padding:18px;">📚 맛 도감 관리</button>
+        <button type="button" class="btn-admin" onclick="goPage('AdminPrice')" style="background:#e1bee7; font-weight:bold; font-size:1rem; padding:18px;">💰 가격 설정</button>
+        <button type="button" class="btn-admin" onclick="goPage('AdminTopping')" style="background:#e1bee7; font-weight:bold; font-size:1rem; padding:18px;">🍓 토핑 도감</button>
+        <button type="button" onclick="goPage(0)" class="btn-secondary">나가기</button>
+    </div>
+
+    <div id="pageAdminDaily" class="page">
+        <h2 style="color:var(--dark-purple);">📅 오늘의 맛 설정</h2>
+        <div id="admin-current-slots" class="flavor-grid"></div>
+        <button type="button" onclick="goPage('Admin')" class="btn-secondary">뒤로가기</button>
+    </div>
+
+    <div id="pageAdminList" class="page">
+        <h2 style="color:var(--dark-purple);">📚 Admin: 맛 도감 리스트</h2>
+        <div style="display:flex; gap:5px; margin-bottom:15px;">
+            <button type="button" onclick="openAddFlavor('Sorbet')" style="font-size:0.75rem; background:#f3e5f5;">+ 소르베 추가</button>
+            <button type="button" onclick="openAddFlavor('Yogurt')" style="font-size:0.75rem; background:#f3e5f5;">+ 요거트 추가</button>
+            <button type="button" onclick="openAddFlavor('General')" style="font-size:0.75rem; background:#f3e5f5;">+ 일반 추가</button>
+        </div>
+        <div id="master-flavor-display" style="max-height: 400px; overflow-y: auto; border:1px solid #eee; padding:10px; border-radius:15px;"></div>
+        <button type="button" onclick="goPage('Admin')" class="btn-secondary">뒤로가기</button>
+    </div>
+
+    <div id="pageAdminAdd" class="page">
+        <h2 id="add-title" style="color:var(--dark-purple);">Admin: 새 맛 등록</h2>
+        <input type="text" id="in-ko" class="admin-input" placeholder="한국어 이름 (필수)">
+        <input type="text" id="in-en" class="admin-input" placeholder="English">
+        <input type="text" id="in-zhCN" class="admin-input" placeholder="简体中文">
+        <input type="text" id="in-zhTW" class="admin-input" placeholder="繁體中文">
+        <input type="text" id="in-ja" class="admin-input" placeholder="日本語">
+        <button type="button" class="btn-primary" style="background:var(--dark-purple);" onclick="saveNewFlavor()">도감에 추가</button>
+        <button type="button" onclick="goPage('AdminList')" class="btn-secondary">취소</button>
+    </div>
+
+    <div id="pageAdminExtra" class="page">
+        <h2 style="color:var(--dark-purple);">Admin: 메뉴 교체/추가금</h2>
+        <p id="selected-flavor-name" style="font-weight:bold; font-size:1.2rem; text-align:center; margin:10px 0;"></p>
+        
+        <h3>추가금 설정</h3>
+        <div class="extra-select">
+            <button type="button" id="ex-0" onclick="updateExBtn(0)">없음</button>
+            <button type="button" id="ex-500" onclick="updateExBtn(500)">500원</button>
+            <button type="button" id="ex-1000" onclick="updateExBtn(1000)">1000원</button>
+        </div>
+
+        <h3>토핑 설정</h3>
+        <div id="topping-selection" style="max-height: 200px; overflow-y: auto; border: 1px solid #eee; padding: 10px; border-radius: 10px; margin-bottom: 15px;"></div>
+        
+        <button type="button" class="btn-primary" style="background:var(--dark-purple); margin-top:20px;" onclick="confirmSwap()">교체 완료</button>
+        <button type="button" onclick="goPage('AdminList')" class="btn-secondary">뒤로가기</button>
+    </div>
+
+    <div id="pageAdminPrice" class="page">
+        <h2 style="color:var(--dark-purple);">💰 가격 설정</h2>
+        
+        <h3>컵 가격</h3>
+        <input type="number" id="price-cup" class="admin-input" placeholder="컵 가격 (원)" value="6000">
+        
+        <h3>박스 가격</h3>
+        <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+            <div style="flex: 1;">
+                <label style="font-size: 0.9rem; color: #666;">S (330g)</label>
+                <input type="number" id="price-box-s" class="admin-input" placeholder="S 박스" value="16000">
+            </div>
+            <div style="flex: 1;">
+                <label style="font-size: 0.9rem; color: #666;">M (480g)</label>
+                <input type="number" id="price-box-m" class="admin-input" placeholder="M 박스" value="20000">
+            </div>
+        </div>
+        <div style="margin-bottom: 20px;">
+            <label style="font-size: 0.9rem; color: #666;">L (700g)</label>
+            <input type="number" id="price-box-l" class="admin-input" placeholder="L 박스" value="30000">
+        </div>
+        
+        <button type="button" class="btn-primary" style="background:var(--point-green);" onclick="savePrices()">가격 저장</button>
+        <button type="button" onclick="goPage('Admin')" class="btn-secondary">뒤로가기</button>
+    </div>
+
+    <div id="pageAdminTopping" class="page">
+        <h2 style="color:var(--dark-purple);">🍓 토핑 도감</h2>
+        <div style="margin-bottom: 15px;">
+            <h3>새 토핑 추가</h3>
+            <input type="text" id="new-topping-ko" class="admin-input" placeholder="한국어 이름 (필수)">
+            <input type="text" id="new-topping-en" class="admin-input" placeholder="English">
+            <input type="text" id="new-topping-zhCN" class="admin-input" placeholder="简体中文">
+            <input type="text" id="new-topping-zhTW" class="admin-input" placeholder="繁體中文">
+            <input type="text" id="new-topping-ja" class="admin-input" placeholder="日本語">
+            <button type="button" class="btn-primary" style="background:var(--point-green);" onclick="addTopping()">+ 토핑 추가</button>
+        </div>
+        <div id="topping-list" style="max-height: 400px; overflow-y: auto; border:1px solid #eee; padding:10px; border-radius:15px;"></div>
+        <button type="button" onclick="goPage('Admin')" class="btn-secondary">뒤로가기</button>
+    </div>
+</div>
+
+<script>
+    function getSafeArray(obj, key) {
+        if (!obj || typeof obj !== 'object') return [];
+        if (!Array.isArray(obj[key])) return [];
+        return obj[key];
+    }
+
+    let defaultMasterFlavors = { 
+        Sorbet: [
+            {ko: "유자소르베", en: "Yuzu Sorbet", "zh-CN": "柚子雪葩", "zh-TW": "柚子雪酪", ja: "ゆずソルベ"},
+            {ko: "딸기소르베", en: "Strawberry Sorbet", "zh-CN": "草莓雪葩", "zh-TW": "草莓雪酪", ja: "イチゴソルベ"},
+            {ko: "레몬소르베", en: "Lemon Sorbet", "zh-CN": "柠檬雪葩", "zh-TW": "檸檬雪酪", ja: "レモンソルベ"},
+            {ko: "망고패션후르츠소르베", en: "Mango Passion Fruit Sorbet", "zh-CN": "芒果百香果雪葩", "zh-TW": "芒果百香果雪酪", ja: "マンゴーパッションフルーツソルベ"},
+            {ko: "토마토바질소르베", en: "Tomato Basil Sorbet", "zh-CN": "番茄罗勒雪葩", "zh-TW": "番茄羅勒雪酪", ja: "トマトバジルソルベ"},
+            {ko: "레몬바질소르베", en: "Lemon Basil Sorbet", "zh-CN": "柠檬罗勒雪葩", "zh-TW": "檸檬羅勒雪酪", ja: "レモンバジルソルベ"},
+            {ko: "파인애플소르베", en: "Pineapple Sorbet", "zh-CN": "菠萝雪葩", "zh-TW": "鳳梨雪酪", ja: "パイナップルソルベ"}
+        ],
+        Yogurt: [
+            {ko: "딸기요거트", en: "Strawberry Yogurt", "zh-CN": "草莓酸奶", "zh-TW": "草莓優格", ja: "イチゴヨーグルト"},
+            {ko: "블루베리요거트", en: "Blueberry Yogurt", "zh-CN": "蓝莓酸奶", "zh-TW": "藍莓優格", ja: "ブルーベリーヨーグルト"},
+            {ko: "플레인요거트", en: "Plain Yogurt", "zh-CN": "原味酸奶", "zh-TW": "原味優格", ja: "プレーンヨーグルト"},
+            {ko: "라즈베리요거트", en: "Raspberry Yogurt", "zh-CN": "树莓酸奶", "zh-TW": "覆盆子優格", ja: "ラズベリーヨーグルト"},
+            {ko: "샤인머스캣요거트", en: "Shine Muscat Yogurt", "zh-CN": "阳光玫瑰酸奶", "zh-TW": "麝香葡萄優格", ja: "シャインマスカットヨーグルト"}
+        ],
+        General: [
+            {ko: "소금우유", en: "Salted Milk", "zh-CN": "海盐牛奶", "zh-TW": "海鹽牛奶", ja: "塩ミルク"},
+            {ko: "쌀(리조)", en: "Rice (Riso)", "zh-CN": "大米 (Riso)", "zh-TW": "米 (Riso)", ja: "お米 (リゾ)"},
+            {ko: "피스타치오", en: "Pistachio", "zh-CN": "开心果", "zh-TW": "開心果", ja: "ピスタチオ"},
+            {ko: "초코", en: "Chocolate", "zh-CN": "巧克力", "zh-TW": "巧克力", ja: "チョコレート"},
+            {ko: "우유+아몬드+초코칩", en: "Milk Almond Choco Chip", "zh-CN": "牛奶杏仁巧克力碎", "zh-TW": "牛奶杏仁巧克力碎", ja: "ミルクアーモンドチョコチップ"},
+            {ko: "커피헤이즐넛", en: "Coffee Hazelnut", "zh-CN": "咖啡榛子", "zh-TW": "咖啡榛果", ja: "コーヒーヘーゼルナッツ"},
+            {ko: "땅콩", en: "Peanut", "zh-CN": "花生", "zh-TW": "花生", ja: "ピーナッツ"},
+            {ko: "말차", en: "Matcha", "zh-CN": "抹茶", "zh-TW": "抹茶", ja: "抹茶"},
+            {ko: "딸기우유", en: "Strawberry Milk", "zh-CN": "草莓牛奶", "zh-TW": "草莓牛奶", ja: "イチゴミルク"},
+            {ko: "바나나초코칩", en: "Banana Choco Chip", "zh-CN": "香蕉巧克力碎", "zh-TW": "香蕉巧克力碎", ja: "バナナチョコチップ"},
+            {ko: "로투스", en: "Biscoff (Lotus)", "zh-CN": "焦糖饼干 (Lotus)", "zh-TW": "焦糖餅乾 (Lotus)", ja: "ロータス"},
+            {ko: "크림치즈", en: "Cream Cheese", "zh-CN": "奶油奶酪", "zh-TW": "奶油乳酪", ja: "クリームチーズ"}
+        ]
+    };
+
+    let masterFlavors = defaultMasterFlavors;
+    let currentDaily = Array(8).fill(null).map((_, i) => ({ko: `비어있음 ${i+1}`, extra: 0, soldOut: false, toppings: []}));
+    let masterToppings = [
+        {ko: "초코칩", en: "Choco Chip", "zh-CN": "巧克力碎", "zh-TW": "巧克力碎", ja: "チョコチップ"},
+        {ko: "팥", en: "Red Bean", "zh-CN": "红豆", "zh-TW": "紅豆", ja: "あんこ"},
+        {ko: "로투스쿠키크럼블", en: "Lotus Cookie Crumble", "zh-CN": "焦糖饼干碎", "zh-TW": "焦糖餅乾碎", ja: "ロータスクッキークランブル"},
+        {ko: "올리브오일&후추", en: "Olive Oil & Pepper", "zh-CN": "橄榄油&胡椒", "zh-TW": "橄欖油&胡椒", ja: "オリーブオイル&ペッパー"},
+        {ko: "떡", en: "Rice Cake", "zh-CN": "年糕", "zh-TW": "年糕", ja: "お餅"}
+    ];
+    let prices = { cup: 6000, boxS: 16000, boxM: 20000, boxL: 30000 };
+    
+    let currentLang = 'en', cart = [], paymentMethodRaw = '', editingSlotIdx = -1, tempExtra = 0, selectedFromMaster = null, currentAddCat = '';
+    let tempToppings = [];
+    let pendingFlavorSelection = null;
+    let selectedToppingsForModal = [];
+    let currentItem = { container: '', size: '', mode: 0, flavors: [], basePrice: 0, extraPrice: 0, time: '' };
+
+    const translations = {
+        'en': { 
+            container: "Choose Your Style", 
+            cupTitle: "Cup", cupDesc: "Dine-in or To-go", cupWarn: "No insulation",
+            boxTitle: "Box", boxDesc: "To-go only", boxInsulated: "Insulated packaging",
+            boxWarn: "* Box: To-go only (No dine-in)",
+            select1_2: "Choose 1~2 Flavors", selectBoxFlavors: "Choose {N} Flavors", 
+            fillOne: "Fill with 1 flavor full", fillTwo: "Half & Half (2 Flavors)",
+            addedCart: "Added to Cart!", checkoutBtn: "Check out", addMoreBtn: "+ Add More", 
+            paymentMethod: "Payment Method",
+            cardBtn: "💳 Card / Pay", cashBtn: "💵 Cash", summary: "Order Summary", 
+            newOrder: "New Order",
+            showStaff: "📱 PLEASE SHOW THIS SCREEN TO THE STAFF!", 
+            showStaffKo: "✅ Staff Confirmation Screen",
+            soldOutBadge: "SOLD OUT", soldOutMsg: "This flavor is currently sold out.",
+            timeInfoTxt: "To-go Time", totalTxt: "Total",
+            withTopping: "With", withoutTopping: "Without",
+            toppingSelection: "Topping Selection",
+            selectToppings: "Please select toppings",
+            confirmSelection: "Confirm Selection",
+            noTopping: "No Topping"
+        },
+        'zh-CN': { 
+            container: "选择方式", 
+            cupTitle: "杯子", cupDesc: "堂食或外带", cupWarn: "无保温",
+            boxTitle: "盒子", boxDesc: "仅限外带", boxInsulated: "保温包装",
+            boxWarn: "* 盒子: 仅限外带 (不可在店食用)",
+            select1_2: "选择 1~2 种口味", selectBoxFlavors: "选择 {N} 种口味", 
+            fillOne: "装满一种口味", fillTwo: "双拼 (两种口味)",
+            addedCart: "已加入购物车!", checkoutBtn: "去结算", addMoreBtn: "+ 再加一份", 
+            paymentMethod: "支付方式",
+            cardBtn: "💳 刷卡 / 移动支付", cashBtn: "💵 现金", summary: "订单详情", 
+            newOrder: "新订单",
+            showStaff: "📱 请将此屏幕出示给店员！", 
+            showStaffKo: "✅ 店员确认屏幕",
+            soldOutBadge: "售罄", soldOutMsg: "该口味目前已售罄。",
+            timeInfoTxt: "外带时间", totalTxt: "总计",
+            withTopping: "含", withoutTopping: "不含",
+            toppingSelection: "配料选择",
+            selectToppings: "请选择配料",
+            confirmSelection: "确认选择",
+            noTopping: "不要配料"
+        },
+        'zh-TW': { 
+            container: "選擇方式", 
+            cupTitle: "杯子", cupDesc: "內用或外帶", cupWarn: "無保溫",
+            boxTitle: "盒子", boxDesc: "僅限外帶", boxInsulated: "保溫包裝",
+            boxWarn: "* 盒子: 僅限外帶 (不可在店食用)",
+            select1_2: "選擇 1~2 種口味", selectBoxFlavors: "選擇 {N} 種口味", 
+            fillOne: "裝滿一種口味", fillTwo: "雙拼 (兩種口味)",
+            addedCart: "已加入購物車!", checkoutBtn: "去結帳", addMoreBtn: "+ 再加一份", 
+            paymentMethod: "支付方式",
+            cardBtn: "💳 刷卡 / 行動支付", cashBtn: "💵 現金", summary: "訂單詳情", 
+            newOrder: "新訂單",
+            showStaff: "📱 請將此螢幕出示給店員！", 
+            showStaffKo: "✅ 店員確認螢幕",
+            soldOutBadge: "售罄", soldOutMsg: "該口味目前已售罄。",
+            timeInfoTxt: "外帶時間", totalTxt: "總計",
+            withTopping: "含", withoutTopping: "不含",
+            toppingSelection: "配料選擇",
+            selectToppings: "請選擇配料",
+            confirmSelection: "確認選擇",
+            noTopping: "不要配料"
+        },
+        'ja': { 
+            container: "スタイルを選択", 
+            cupTitle: "カップ", cupDesc: "店内またはお持ち帰り", cupWarn: "保温なし",
+            boxTitle: "ボックス", boxDesc: "お持ち帰り専用", boxInsulated: "保温包装",
+            boxWarn: "* ボックス: お持ち帰り専用 (店内飲食不可)",
+            select1_2: "1~2種類を選択", selectBoxFlavors: "{N}種類を選択", 
+            fillOne: "1種類で満たす", fillTwo: "ハーフ＆ハーフ (2種類)",
+            addedCart: "カートに追加しました!", checkoutBtn: "お会計", addMoreBtn: "+ さらに追加", 
+            paymentMethod: "お支払い方法",
+            cardBtn: "💳 カード / 決済", cashBtn: "💵 現金", summary: "注文内容", 
+            newOrder: "新規注文",
+            showStaff: "📱 この画面をスタッフにお見せください！", 
+            showStaffKo: "✅ スタッフ確認画面",
+            soldOutBadge: "完売", soldOutMsg: "このフレーバーは現在完売しております。",
+            timeInfoTxt: "お持ち帰り時間", totalTxt: "合計",
+            withTopping: "付き", withoutTopping: "なし",
+            toppingSelection: "トッピング選択",
+            selectToppings: "トッピングを選択してください",
+            confirmSelection: "選択完了",
+            noTopping: "トッピングなし"
+        },
+        'ko': { 
+            container: "스타일 선택", 
+            cupTitle: "컵", cupDesc: "매장/테이크아웃 가능", cupWarn: "보냉 불가",
+            boxTitle: "박스", boxDesc: "포장 전용", boxInsulated: "보냉 포장",
+            boxWarn: "* 박스는 포장 전용입니다. (매장 취식 불가)",
+            select1_2: "1~2가지 맛 선택", selectBoxFlavors: "{N}가지 맛 선택", 
+            fillOne: "한 가지로 가득 채우기", fillTwo: "두 가지 맛 반반",
+            addedCart: "장바구니에 담겼습니다!", checkoutBtn: "결제하기", addMoreBtn: "+ 더 담기", 
+            paymentMethod: "결제 수단",
+            cardBtn: "💳 카드 / 페이", cashBtn: "💵 현금", summary: "주문 내역", 
+            newOrder: "새 주문",
+            showStaff: "📱 이 화면을 직원에게 보여주세요!", 
+            showStaffKo: "✅ 직원 확인용 화면입니다",
+            soldOutBadge: "품절", soldOutMsg: "해당 맛은 현재 품절되었습니다.",
+            timeInfoTxt: "이동시간", totalTxt: "총 결제 금액",
+            withTopping: "포함", withoutTopping: "제외",
+            toppingSelection: "토핑 선택",
+            selectToppings: "원하는 토핑을 선택해주세요",
+            confirmSelection: "선택 완료",
+            noTopping: "토핑 없음"
+        }
+    };
+
+    function getI18n(key) { return translations[currentLang][key] || translations['en'][key]; }
+
+    function getToppingName(topping) {
+        if (typeof topping === 'string') return topping;
+        return topping[currentLang] || topping.ko;
+    }
+
+    function saveData() { 
+        localStorage.setItem('gelato_perfect_db_v10', JSON.stringify({ 
+            masterFlavors, currentDaily, masterToppings, prices 
+        })); 
+    }
+    
+    function loadData() {
+        const saved = localStorage.getItem('gelato_perfect_db_v10');
+        if (saved) {
+            try {
+                const parsed = JSON.parse(saved);
+                masterFlavors = { 
+                    Sorbet: getSafeArray(parsed.masterFlavors, 'Sorbet'), 
+                    Yogurt: getSafeArray(parsed.masterFlavors, 'Yogurt'), 
+                    General: getSafeArray(parsed.masterFlavors, 'General') 
+                };
+                currentDaily = Array.isArray(parsed.currentDaily) && parsed.currentDaily.length === 8 
+                    ? parsed.currentDaily.map(slot => ({
+                        ...slot, 
+                        soldOut: !!slot.soldOut,
+                        toppings: Array.isArray(slot.toppings) ? slot.toppings : []
+                    })) 
+                    : Array(8).fill(null).map((_, i) => ({ko: `비어있음 ${i+1}`, extra: 0, soldOut: false, toppings: []}));
+                
+                if (Array.isArray(parsed.masterToppings)) {
+                    masterToppings = parsed.masterToppings;
+                }
+                if (parsed.prices) {
+                    prices = {...prices, ...parsed.prices};
+                }
+                updatePriceInputs();
+                updateCupPriceDisplay();
+            } catch (e) { console.error("데이터 로드 실패", e); }
+        }
+    }
+
+    function updatePriceInputs() {
+        const cupInput = document.getElementById('price-cup');
+        const boxSInput = document.getElementById('price-box-s');
+        const boxMInput = document.getElementById('price-box-m');
+        const boxLInput = document.getElementById('price-box-l');
+        
+        if (cupInput) cupInput.value = prices.cup;
+        if (boxSInput) boxSInput.value = prices.boxS;
+        if (boxMInput) boxMInput.value = prices.boxM;
+        if (boxLInput) boxLInput.value = prices.boxL;
+    }
+
+    function updateCupPriceDisplay() {
+        const cupPriceEl = document.getElementById('cup-price-display');
+        if (cupPriceEl) {
+            cupPriceEl.innerText = `${prices.cup.toLocaleString()}₩`;
+        }
+    }
+
+    function savePrices() {
+        prices.cup = parseInt(document.getElementById('price-cup').value) || 6000;
+        prices.boxS = parseInt(document.getElementById('price-box-s').value) || 16000;
+        prices.boxM = parseInt(document.getElementById('price-box-m').value) || 20000;
+        prices.boxL = parseInt(document.getElementById('price-box-l').value) || 30000;
+        saveData();
+        updateCupPriceDisplay();
+        showToast("가격이 저장되었습니다!");
+    }
+
+    let toastTimer;
+    function showToast(msg) {
+        const t = document.getElementById("toast"); 
+        t.innerText = msg; 
+        t.classList.add("show");
+        clearTimeout(toastTimer); 
+        toastTimer = setTimeout(() => { t.classList.remove("show"); }, 2000);
+    }
+
+    function goPage(id) {
+        document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+        document.getElementById('page' + id).classList.add('active');
+        if(id === 'Admin') { /* 메인 관리자 페이지 */ }
+        if(id === 'AdminDaily') renderAdminCurrent();
+        if(id === 'AdminList') renderMasterList();
+        if(id === 'AdminTopping') renderToppingList();
+        if(id === 'AdminPrice') updatePriceInputs();
+        if(id === '1_5') renderBoxSizePage();
+        if(id === 3) renderFlavorPage(); 
+        if(id === 5) renderBill(false);
+    }
+
+    function setLanguage(l) { 
+        currentLang = l; 
+        updateTranslations();
+        goPage(1); 
+    }
+
+    function updateTranslations() {
+        document.querySelectorAll('.t-container').forEach(e => e.innerText = getI18n('container'));
+        document.querySelectorAll('.t-cup-title').forEach(e => e.innerText = getI18n('cupTitle'));
+        document.querySelectorAll('.t-cup-desc').forEach(e => e.innerText = getI18n('cupDesc'));
+        document.querySelectorAll('.t-cup-warn').forEach(e => e.innerText = "❄️❌ " + getI18n('cupWarn'));
+        document.querySelectorAll('.t-box-title').forEach(e => e.innerText = getI18n('boxTitle'));
+        document.querySelectorAll('.t-box-desc').forEach(e => e.innerText = getI18n('boxDesc'));
+        document.querySelectorAll('.t-box-insulated').forEach(e => e.innerText = "🧊✅ " + getI18n('boxInsulated'));
+        document.querySelectorAll('.t-box-warn').forEach(e => e.innerText = getI18n('boxWarn'));
+        document.querySelectorAll('.t-added-cart').forEach(e => e.innerText = getI18n('addedCart'));
+        document.querySelectorAll('.t-checkout-btn').forEach(e => e.innerText = getI18n('checkoutBtn'));
+        document.querySelectorAll('.t-add-more-btn').forEach(e => e.innerText = getI18n('addMoreBtn'));
+        document.querySelectorAll('.t-payment-method').forEach(e => e.innerText = getI18n('paymentMethod'));
+        document.querySelectorAll('.t-card-btn').forEach(e => e.innerText = getI18n('cardBtn'));
+        document.querySelectorAll('.t-cash-btn').forEach(e => e.innerText = getI18n('cashBtn'));
+        document.querySelectorAll('.t-summary').forEach(e => e.innerText = getI18n('summary'));
+        document.querySelectorAll('.t-new-order').forEach(e => e.innerText = getI18n('newOrder'));
+        
+        if(document.getElementById('page3').classList.contains('active')) renderFlavorPage();
+        if(document.getElementById('page5').classList.contains('active')) renderBill(false);
+    }
+
+    function selectContainer(t, p) { 
+        currentItem.container = t; 
+        currentItem.basePrice = (t === 'Cup') ? prices.cup : 0;
+        if(t === 'Cup') {
+            currentItem.mode = 2;
+            goPage(3);
+        } else {
+            goPage('1_5'); 
+        }
+    }
+
+    function renderBoxSizePage() {
+        const container = document.getElementById('box-size-buttons');
+        container.innerHTML = `
+            <button type="button" onclick="selectBoxSize('S', 2, ${prices.boxS})">S (330g / 2 Flavors) - ${prices.boxS.toLocaleString()}₩</button>
+            <button type="button" onclick="selectBoxSize('M', 3, ${prices.boxM})">M (480g / 3 Flavors) - ${prices.boxM.toLocaleString()}₩</button>
+            <button type="button" onclick="selectBoxSize('L', 4, ${prices.boxL})">L (700g / 4 Flavors) - ${prices.boxL.toLocaleString()}₩</button>
+        `;
+    }
+
+    function selectBoxSize(s, m, p) { 
+        currentItem.size = s; 
+        currentItem.mode = m; 
+        currentItem.basePrice = p; 
+        goPage('2_5'); 
+    }
+
+    function setDeliveryTime(t) { currentItem.time = t; goPage(3); }
+
+    function renderFlavorPage() {
+        const container = document.getElementById('page3-content');
+        container.innerHTML = ''; 
+
+        const title = document.createElement('h2');
+        title.id = "page3-title";
+        title.style.fontSize = "1.4rem"; 
+        title.style.color = "var(--point-green)";
+        title.innerText = (currentItem.container === 'Cup') 
+            ? getI18n('select1_2') 
+            : getI18n('selectBoxFlavors').replace('{N}', currentItem.mode);
+        container.appendChild(title);
+
+        if (currentItem.container === 'Cup') {
+            container.innerHTML += `
+                <div style="display: flex; justify-content: center; align-items: stretch; gap: 10px; margin-bottom: 15px; width: 100%;">
+                    <div id="left-flavors" style="flex: 1 1 0; min-width: 0; display:flex; flex-direction:column; gap:8px;"></div>
+                    
+                    <div style="width: 110px; flex-shrink: 0; display:flex; flex-direction:column; align-items:center; justify-content:center;">
+                        <svg viewBox="0 0 100 100" style="width:100px; height:100px; filter: drop-shadow(0 3px 8px rgba(0,0,0,0.1));">
+                            <circle cx="50" cy="50" r="48" fill="#e0e0e0" stroke="#bdbdbd" stroke-width="2"/>
+                            <circle cx="50" cy="50" r="42" fill="#fafafa" />
+                            <path id="svg-half-left" d="M50,8 A42,42 0 0,0 50,92 Z" fill="transparent" style="transition: fill 0.3s;"/>
+                            <path id="svg-half-right" d="M50,8 A42,42 0 0,1 50,92 Z" fill="transparent" style="transition: fill 0.3s;"/>
+                            <circle id="svg-full" cx="50" cy="50" r="42" fill="transparent" style="transition: fill 0.3s;"/>
+                        </svg>
+                    </div>
+
+                    <div id="right-flavors" style="flex: 1 1 0; min-width: 0; display:flex; flex-direction:column; gap:8px;"></div>
+                </div>
+                
+                <button type="button" class="t-fill-one" onclick="setModeOne()" style="width:100%; padding:14px; border-radius:15px; background:#fff3e0; color:#e65100; border:2px solid #ffe082; font-weight:bold; font-size:1rem; margin-bottom:12px;">${getI18n('fillOne')}</button>
+                <button type="button" class="t-fill-two" onclick="setModeTwo()" style="width:100%; padding:14px; border-radius:15px; background:#e8f5e9; color:#2e7d32; border:2px solid #a5d6a7; font-weight:bold; font-size:1rem; margin-bottom:12px; display:none;">${getI18n('fillTwo')}</button>
+                
+                <button type="button" id="add-cart-btn" class="btn-primary" onclick="addToCart()" style="display:none; padding:18px; font-size:1.2rem; margin-top:10px;">${getI18n('checkoutBtn')}</button>
+                
+                <button type="button" onclick="goPage(1)" class="btn-secondary" style="margin-top:10px; display:block; width:100%;">← Back</button>
+            `;
+            const leftDiv = document.getElementById('left-flavors');
+            const rightDiv = document.getElementById('right-flavors');
+            
+            currentDaily.forEach((slot, idx) => {
+                const btn = createFlavorBtn(slot);
+                btn.style.minHeight = '75px'; 
+                btn.style.padding = '8px 5px';
+                btn.style.fontSize = '0.85rem';
+                if (idx % 2 === 0) leftDiv.appendChild(btn);
+                else rightDiv.appendChild(btn);
+            });
+        } else {
+            container.innerHTML += `
+                <div id="box-flavors" class="flavor-grid" style="margin-bottom: 15px;"></div>
+                <button type="button" id="add-cart-btn" class="btn-primary" onclick="addToCart()" style="display:none; padding:18px; font-size:1.2rem;">${getI18n('checkoutBtn')}</button>
+                <button type="button" onclick="goPage('2_5')" class="btn-secondary" style="margin-top:15px; display:block; width:100%;">← Back</button>
+            `;
+            const boxDiv = document.getElementById('box-flavors');
+            currentDaily.forEach(slot => boxDiv.appendChild(createFlavorBtn(slot)));
+        }
+        updateFlavorSelection();
+    }
+
+    function createFlavorBtn(slot) {
+        let fullData = null;
+        ["Sorbet", "Yogurt", "General"].forEach(cat => { 
+            const list = getSafeArray(masterFlavors, cat); 
+            const found = list.find(m => m.ko === slot.ko); 
+            if(found) fullData = found; 
+        });
+        
+        const btn = document.createElement('button'); 
+        btn.type = 'button'; 
+        btn.className = 'flavor-btn';
+        btn.setAttribute('data-ko', slot.ko);
+        
+        let dispEx = (currentItem.container === 'Cup') ? slot.extra : (slot.extra > 0 ? 1000 : 0);
+        let bestBadge = (slot.ko === '소금우유' || slot.ko === '피스타치오') 
+            ? `<span style="color: var(--alert-red); font-weight: 900; font-size: 0.75rem; letter-spacing: 1px; margin-bottom: 2px;">BEST</span>` 
+            : '';
+        
+        let toppingBadge = '';
+        if (slot.toppings && slot.toppings.length > 0) {
+            const toppingNames = slot.toppings.map(t => getToppingName(t)).join(', ');
+            toppingBadge = `<span class="topping-badge">🍓 ${toppingNames}</span>`;
+        }
+
+        btn.innerHTML = `
+            ${bestBadge}
+            <strong style="font-size:0.88rem;">${fullData ? (fullData[currentLang] || fullData.ko) : slot.ko}</strong>
+            <small style="font-size:0.72rem; color:#757575;">${slot.ko}</small>
+            ${dispEx > 0 ? `<span class="extra-cost">+${dispEx}₩</span>` : ''}
+            ${toppingBadge}
+        `;
+        
+        if (slot.soldOut) {
+            btn.classList.add('sold-out');
+            btn.setAttribute('data-soldout-text', getI18n('soldOutBadge'));
+            btn.onclick = () => { showToast(getI18n('soldOutMsg')); }; 
+        } else {
+            btn.onclick = () => {
+                if (slot.toppings && slot.toppings.length > 0) {
+                    pendingFlavorSelection = slot;
+                    showToppingModal(slot);
+                } else {
+                    toggleFlavorSelection(slot);
+                }
+            };
+        }
+        return btn;
+    }
+
+    function showToppingModal(slot) {
+        let fullData = null;
+        ["Sorbet", "Yogurt", "General"].forEach(cat => { 
+            const found = masterFlavors[cat].find(m => m.ko === slot.ko); 
+            if(found) fullData = found; 
+        });
+        
+        const displayName = fullData ? (fullData[currentLang] || fullData.ko) : slot.ko;
+        
+        document.getElementById('modal-title').innerText = "🍓 " + getI18n('toppingSelection');
+        document.getElementById('modal-flavor-name').innerText = displayName;
+
+        if (slot.toppings.length === 1) {
+            document.getElementById('single-topping-options').style.display = 'block';
+            document.getElementById('multiple-topping-options').style.display = 'none';
+            const toppingName = getToppingName(slot.toppings[0]);
+            document.getElementById('modal-topping-list').innerText = `${getI18n('withTopping')}: ${toppingName}`;
+            document.getElementById('btn-with-topping').innerText = `✅ ${getI18n('withTopping')}`;
+            document.getElementById('btn-without-topping').innerText = `❌ ${getI18n('withoutTopping')}`;
+        } else {
+            document.getElementById('single-topping-options').style.display = 'none';
+            document.getElementById('multiple-topping-options').style.display = 'block';
+            
+            document.getElementById('modal-instruction').innerText = getI18n('selectToppings');
+            document.getElementById('btn-confirm-toppings').innerText = `✅ ${getI18n('confirmSelection')}`;
+            document.getElementById('btn-no-topping').innerText = `❌ ${getI18n('noTopping')}`;
+            
+            const checkboxList = document.getElementById('topping-checkbox-list');
+            checkboxList.innerHTML = '';
+            selectedToppingsForModal = [];
+            
+            slot.toppings.forEach((topping, idx) => {
+                const toppingName = getToppingName(topping);
+                const item = document.createElement('div');
+                item.className = 'topping-checkbox-item';
+                item.innerHTML = `
+                    <input type="checkbox" id="topping-check-${idx}" value="${topping.ko || topping}">
+                    <label for="topping-check-${idx}">${toppingName}</label>
+                `;
+                
+                const checkbox = item.querySelector('input');
+                checkbox.addEventListener('change', (e) => {
+                    if (e.target.checked) {
+                        selectedToppingsForModal.push(topping);
+                        item.classList.add('selected');
+                    } else {
+                        selectedToppingsForModal = selectedToppingsForModal.filter(t => 
+                            (t.ko || t) !== (topping.ko || topping)
+                        );
+                        item.classList.remove('selected');
+                    }
+                });
+                
+                item.addEventListener('click', (e) => {
+                    if (e.target.tagName !== 'INPUT') {
+                        checkbox.checked = !checkbox.checked;
+                        checkbox.dispatchEvent(new Event('change'));
+                    }
+                });
+                
+                checkboxList.appendChild(item);
+            });
+        }
+        
+        document.getElementById('toppingModal').classList.add('active');
+    }
+
+    function selectToppingOption(withTopping) {
+        document.getElementById('toppingModal').classList.remove('active');
+        
+        if (pendingFlavorSelection) {
+            const slotToAdd = withTopping 
+                ? pendingFlavorSelection 
+                : {...pendingFlavorSelection, toppings: []};
+            
+            toggleFlavorSelection(slotToAdd);
+            pendingFlavorSelection = null;
+        }
+    }
+
+    function confirmMultipleToppings() {
+        document.getElementById('toppingModal').classList.remove('active');
+        
+        if (pendingFlavorSelection) {
+            const slotToAdd = {
+                ...pendingFlavorSelection,
+                toppings: [...selectedToppingsForModal]
+            };
+            
+            toggleFlavorSelection(slotToAdd);
+            pendingFlavorSelection = null;
+            selectedToppingsForModal = [];
+        }
+    }
+
+    function selectNoTopping() {
+        document.getElementById('toppingModal').classList.remove('active');
+        
+        if (pendingFlavorSelection) {
+            const slotToAdd = {
+                ...pendingFlavorSelection,
+                toppings: []
+            };
+            
+            toggleFlavorSelection(slotToAdd);
+            pendingFlavorSelection = null;
+            selectedToppingsForModal = [];
+        }
+    }
+
+    function closeModalAndCancel() {
+        document.getElementById('toppingModal').classList.remove('active');
+        pendingFlavorSelection = null;
+        selectedToppingsForModal = [];
+    }
+
+    function toggleFlavorSelection(slot) {
+        const idx = currentItem.flavors.findIndex(f => f.ko === slot.ko);
+        if(idx > -1) { 
+            currentItem.flavors.splice(idx,1); 
+        } else {
+            if (currentItem.container === 'Cup' && currentItem.mode === 1 && currentItem.flavors.length === 1) {
+                currentItem.mode = 2; 
+            }
+            if(currentItem.flavors.length < currentItem.mode) { 
+                currentItem.flavors.push(slot); 
+            }
+        }
+        updateFlavorSelection();
+    }
+
+    function updateFlavorSelection() {
+        const cartBtn = document.getElementById('add-cart-btn');
+        if (cartBtn) {
+            cartBtn.style.display = (currentItem.flavors.length > 0 && currentItem.flavors.length === currentItem.mode) ? 'block' : 'none';
+        }
+        
+        document.querySelectorAll('.flavor-btn:not(.sold-out)').forEach(btn => {
+            const flavorKo = btn.getAttribute('data-ko');
+            if (flavorKo && currentItem.flavors.some(f => f.ko === flavorKo)) {
+                btn.classList.add('selected');
+            } else {
+                btn.classList.remove('selected');
+            }
+        });
+
+        if (currentItem.container === 'Cup') {
+            const btnOne = document.querySelector('.t-fill-one');
+            const btnTwo = document.querySelector('.t-fill-two');
+            if(btnOne && btnTwo) {
+                btnOne.style.display = (currentItem.mode === 2) ? 'block' : 'none';
+                btnTwo.style.display = (currentItem.mode === 1) ? 'block' : 'none';
+            }
+            
+            const left = document.getElementById('svg-half-left'); 
+            const right = document.getElementById('svg-half-right'); 
+            const full = document.getElementById('svg-full');
+            if(left && right && full) {
+                left.setAttribute('fill', 'transparent'); 
+                right.setAttribute('fill', 'transparent'); 
+                full.setAttribute('fill', 'transparent');
+                if(currentItem.mode === 1 && currentItem.flavors.length === 1) {
+                    full.setAttribute('fill', '#ffecb3');
+                } else {
+                    if(currentItem.flavors.length >= 1) left.setAttribute('fill', '#f8bbd0');
+                    if(currentItem.flavors.length === 2) right.setAttribute('fill', '#c8e6c9');
+                }
+            }
+        }
+    }
+
+    function setModeOne() {
+        currentItem.mode = 1;
+        if(currentItem.flavors.length > 1) currentItem.flavors = [currentItem.flavors[0]]; 
+        updateFlavorSelection();
+    }
+
+    function setModeTwo() {
+        currentItem.mode = 2;
+        updateFlavorSelection();
+    }
+
+    function addToCart() { 
+        let ex = 0; 
+        currentItem.flavors.forEach(f => {
+            ex += (currentItem.container === 'Cup' ? f.extra : (f.extra > 0 ? 1000 : 0));
+        }); 
+        cart.push({
+            ...currentItem, 
+            extraPrice: ex, 
+            flavors: [...currentItem.flavors]
+        }); 
+        currentItem = { container: '', size: '', mode: 0, flavors: [], basePrice: 0, extraPrice: 0, time: '' }; 
+        showToast(getI18n('addedCart')); 
+        goPage(4); 
+    }
+    
+    function setPayment(p) { 
+        paymentMethodRaw = p; 
+        goPage(5); 
+    }
+    
+    function renderBill(forceKorean = false) {
+        const div = document.getElementById('final-bill'); 
+        const payDiv = document.getElementById('payment-method-display'); 
+        let total = 0; 
+        
+        const langContext = forceKorean ? 'ko' : currentLang;
+        const localI18n = (key) => translations[langContext][key] || translations['en'][key];
+
+        let payText = '';
+        if (forceKorean) {
+            payText = paymentMethodRaw === 'Card' ? '카드' : '현금';
+        } else {
+            payText = localI18n(paymentMethodRaw.toLowerCase() + 'Btn').split(' / ')[0]; 
+        }
+        payDiv.innerText = `${localI18n('paymentMethod')}: ${payText}`;
+        
+        div.innerHTML = cart.map((item, i) => {
+            const itemTotal = (item.basePrice + item.extraPrice); 
+            total += itemTotal;
+            
+            const timeInfo = item.time 
+                ? `<br><small style="color:var(--alert-red); font-weight:bold;">🕒 ${localI18n('timeInfoTxt')}: ${item.time}</small>` 
+                : '';
+            
+            const containerText = forceKorean 
+                ? (item.container === 'Cup' ? '컵' : '박스') 
+                : localI18n(item.container.toLowerCase() + 'Title');
+            
+            const flavorListText = item.flavors.map(f => {
+                let translatedName = f.ko;
+                if (!forceKorean) {
+                    ["Sorbet", "Yogurt", "General"].forEach(cat => {
+                        const found = masterFlavors[cat].find(m => m.ko === f.ko);
+                        if(found && found[currentLang]) translatedName = found[currentLang];
+                    });
+                }
+                
+                let toppingInfo = '';
+                if (f.toppings && f.toppings.length > 0) {
+                    const toppingNames = f.toppings.map(t => {
+                        if (forceKorean) return t.ko || t;
+                        return getToppingName(t);
+                    }).join(', ');
+                    const toppingPrefix = forceKorean ? '토핑' : localI18n('withTopping');
+                    toppingInfo = ` <small style="color:#e65100;">(${toppingPrefix}: ${toppingNames})</small>`;
+                } else {
+                    const originalSlot = currentDaily.find(s => s.ko === f.ko);
+                    if (originalSlot && originalSlot.toppings && originalSlot.toppings.length > 0) {
+                        const noToppingText = forceKorean ? '토핑 제외' : localI18n('withoutTopping');
+                        toppingInfo = ` <small style="color:#999;">(${noToppingText})</small>`;
+                    }
+                }
+                
+                return translatedName + toppingInfo;
+            }).join(', ');
+
+            return `<div style="padding:10px 0; border-bottom:1px solid #eee;">
+                #${i+1} <b>${containerText} ${item.size||''}</b>${timeInfo}<br>
+                ${flavorListText} 
+                <span style="float:right">${itemTotal.toLocaleString()}₩</span>
+            </div>`;
+        }).join('');
+        
+        document.getElementById('total-price-display').innerText = `${localI18n('totalTxt')}: ${total.toLocaleString()}₩`;
+
+        const staffBtn = document.getElementById('show-staff-btn');
+        if (forceKorean) {
+            staffBtn.innerText = localI18n('showStaffKo');
+            staffBtn.classList.remove('blink-bg-soft');
+            staffBtn.style.backgroundColor = "#e8f5e9";
+            staffBtn.style.color = "#2e7d32";
+            staffBtn.style.borderColor = "#a5d6a7";
+            staffBtn.onclick = () => renderBill(false);
+        } else {
+            staffBtn.innerText = localI18n('showStaff');
+            staffBtn.classList.add('blink-bg-soft');
+            staffBtn.style.backgroundColor = "var(--light-green)";
+            staffBtn.style.color = "var(--point-green)";
+            staffBtn.style.borderColor = "var(--border-green)";
+            staffBtn.onclick = () => renderBill(true); 
+        }
+    }
+    
+    function resetAll() { cart = []; goPage(0); }
+
+    function renderAdminCurrent() {
+        const div = document.getElementById('admin-current-slots'); 
+        div.innerHTML = '';
+        currentDaily.forEach((f, idx) => {
+            const card = document.createElement('div');
+            card.style.display = 'flex'; 
+            card.style.flexDirection = 'column'; 
+            card.style.gap = '5px';
+            
+            const btn = document.createElement('button'); 
+            btn.type = 'button'; 
+            btn.className = 'flavor-btn'; 
+            btn.style.minHeight = '80px';
+            
+            let bestBadge = (f.ko === '소금우유' || f.ko === '피스타치오') 
+                ? `<span style="color: var(--alert-red); font-weight: 900; font-size: 0.7rem; margin-bottom: 2px;">BEST</span>` 
+                : '';
+            
+            let toppingInfo = '';
+            if (f.toppings && f.toppings.length > 0) {
+                const toppingNames = f.toppings.map(t => t.ko || t).join(', ');
+                toppingInfo = `<br><small style="color:#e65100;">토핑: ${toppingNames}</small>`;
+            }
+            
+            btn.innerHTML = `${bestBadge}<small>Slot ${idx+1}</small><strong>${f.ko}</strong><br><small style="color:var(--dark-purple)">+${f.extra}₩</small>${toppingInfo}`;
+            btn.onclick = () => { editingSlotIdx = idx; goPage('AdminList'); };
+            
+            const toggleBtn = document.createElement('button');
+            toggleBtn.type = 'button';
+            toggleBtn.style.padding = '10px'; 
+            toggleBtn.style.fontSize = '0.85rem'; 
+            toggleBtn.style.margin = '0';
+            toggleBtn.style.borderRadius = '10px';
+            toggleBtn.style.backgroundColor = f.soldOut ? '#ffebee' : '#e8f5e9';
+            toggleBtn.style.color = f.soldOut ? '#c62828' : '#2e7d32';
+            toggleBtn.style.border = `1px solid ${f.soldOut ? '#ffcdd2' : '#a5d6a7'}`;
+            toggleBtn.innerText = f.soldOut ? '🚫 품절 해제하기' : '✅ 품절 처리하기';
+            
+            toggleBtn.onclick = () => {
+                currentDaily[idx].soldOut = !currentDaily[idx].soldOut;
+                saveData();
+                renderAdminCurrent(); 
+                showToast(currentDaily[idx].soldOut ? "품절 처리 완료" : "판매가 재개되었습니다");
+            };
+
+            card.appendChild(btn);
+            card.appendChild(toggleBtn);
+            div.appendChild(card);
+        });
+    }
+
+    function renderMasterList() {
+        const div = document.getElementById('master-flavor-display'); 
+        div.innerHTML = '';
+        ["Sorbet", "Yogurt", "General"].forEach(cat => {
+            const title = document.createElement('h3'); 
+            title.innerText = cat === 'Sorbet' ? '🍦 소르베' : cat === 'Yogurt' ? '🥛 요거트' : '🍪 일반'; 
+            div.appendChild(title);
+            let list = getSafeArray(masterFlavors, cat); 
+            let sortedList = [...list].sort((a,b) => (a.ko || "").localeCompare(b.ko || ""));
+            sortedList.forEach((f) => {
+                const row = document.createElement('div'); 
+                row.className = 'master-item-row';
+                const selBtn = document.createElement('button'); 
+                selBtn.type = 'button'; 
+                selBtn.innerText = f.ko;
+                selBtn.onclick = (e) => { 
+                    e.preventDefault(); 
+                    selectedFromMaster = f; 
+                    document.getElementById('selected-flavor-name').innerText = f.ko; 
+                    updateExBtn(0); 
+                    tempToppings = [];
+                    renderToppingSelection();
+                    goPage('AdminExtra'); 
+                };
+                const delBtn = document.createElement('button'); 
+                delBtn.type = 'button'; 
+                delBtn.className = 'btn-delete'; 
+                delBtn.innerText = '삭제';
+                delBtn.onclick = (e) => { 
+                    e.preventDefault(); 
+                    e.stopPropagation(); 
+                    if (delBtn.classList.contains('confirm-mode')) {
+                        masterFlavors[cat] = masterFlavors[cat].filter(item => item.ko !== f.ko); 
+                        saveData(); 
+                        renderMasterList(); 
+                        showToast("삭제 완료!");
+                    } else {
+                        delBtn.classList.add('confirm-mode'); 
+                        delBtn.innerText = '진짜?'; 
+                        delBtn.style.backgroundColor = 'var(--alert-red)'; 
+                        delBtn.style.color = 'white'; 
+                        delBtn.style.borderColor = 'var(--alert-red)';
+                        setTimeout(() => { 
+                            if (document.body.contains(delBtn)) { 
+                                delBtn.classList.remove('confirm-mode'); 
+                                delBtn.innerText = '삭제'; 
+                                delBtn.style.backgroundColor = '#ffebee'; 
+                                delBtn.style.color = '#c62828'; 
+                                delBtn.style.borderColor = '#ffcdd2'; 
+                            } 
+                        }, 3000);
+                    }
+                };
+                row.appendChild(selBtn); 
+                row.appendChild(delBtn); 
+                div.appendChild(row);
+            });
+        });
+    }
+
+    function renderToppingSelection() {
+        const div = document.getElementById('topping-selection');
+        if (!div) return;
+        
+        div.innerHTML = '';
+        
+        if (masterToppings.length === 0) {
+            div.innerHTML = '<p style="text-align:center; color:#999;">토핑이 없습니다. 토핑 도감에서 추가해주세요.</p>';
+            return;
+        }
+        
+        masterToppings.forEach(topping => {
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.innerText = topping.ko || topping;
+            btn.style.margin = '5px';
+            btn.style.padding = '10px 15px';
+            btn.style.borderRadius = '10px';
+            btn.style.fontSize = '0.9rem';
+            
+            const isSelected = tempToppings.some(t => (t.ko || t) === (topping.ko || topping));
+            if (isSelected) {
+                btn.style.background = 'var(--light-green)';
+                btn.style.color = 'var(--point-green)';
+                btn.style.borderColor = 'var(--point-green)';
+            }
+            
+            btn.onclick = () => {
+                const idx = tempToppings.findIndex(t => (t.ko || t) === (topping.ko || topping));
+                if (idx > -1) {
+                    tempToppings.splice(idx, 1);
+                } else {
+                    tempToppings.push(topping);
+                }
+                renderToppingSelection();
+            };
+            
+            div.appendChild(btn);
+        });
+    }
+
+    function renderToppingList() {
+        const div = document.getElementById('topping-list');
+        div.innerHTML = '';
+        
+        if (masterToppings.length === 0) {
+            div.innerHTML = '<p style="text-align:center; color:#999; padding:20px;">등록된 토핑이 없습니다.</p>';
+            return;
+        }
+        
+        masterToppings.forEach((topping, idx) => {
+            const row = document.createElement('div');
+            row.className = 'master-item-row';
+            
+            const nameBtn = document.createElement('button');
+            nameBtn.type = 'button';
+            nameBtn.innerText = topping.ko || topping;
+            nameBtn.style.cursor = 'default';
+            
+            const delBtn = document.createElement('button');
+            delBtn.type = 'button';
+            delBtn.className = 'btn-delete';
+            delBtn.innerText = '삭제';
+            delBtn.onclick = (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                if (delBtn.classList.contains('confirm-mode')) {
+                    masterToppings.splice(idx, 1);
+                    saveData();
+                    renderToppingList();
+                    showToast("토핑 삭제 완료!");
+                } else {
+                    delBtn.classList.add('confirm-mode');
+                    delBtn.innerText = '진짜?';
+                    delBtn.style.backgroundColor = 'var(--alert-red)';
+                    delBtn.style.color = 'white';
+                    delBtn.style.borderColor = 'var(--alert-red)';
+                    setTimeout(() => {
+                        if (document.body.contains(delBtn)) {
+                            delBtn.classList.remove('confirm-mode');
+                            delBtn.innerText = '삭제';
+                            delBtn.style.backgroundColor = '#ffebee';
+                            delBtn.style.color = '#c62828';
+                            delBtn.style.borderColor = '#ffcdd2';
+                        }
+                    }, 3000);
+                }
+            };
+            
+            row.appendChild(nameBtn);
+            row.appendChild(delBtn);
+            div.appendChild(row);
+        });
+    }
+
+    function addTopping() {
+        const koInput = document.getElementById('new-topping-ko');
+        const ko = koInput.value.trim();
+        
+        if (!ko) {
+            alert("한국어 이름은 필수입니다!");
+            koInput.focus();
+            return;
+        }
+        
+        if (masterToppings.some(t => (t.ko || t) === ko)) {
+            alert("이미 존재하는 토핑입니다!");
+            return;
+        }
+        
+        const newTopping = {
+            ko: ko,
+            en: document.getElementById('new-topping-en').value.trim() || ko,
+            "zh-CN": document.getElementById('new-topping-zhCN').value.trim() || ko,
+            "zh-TW": document.getElementById('new-topping-zhTW').value.trim() || ko,
+            ja: document.getElementById('new-topping-ja').value.trim() || ko
+        };
+        
+        masterToppings.push(newTopping);
+        saveData();
+        
+        document.getElementById('new-topping-ko').value = '';
+        document.getElementById('new-topping-en').value = '';
+        document.getElementById('new-topping-zhCN').value = '';
+        document.getElementById('new-topping-zhTW').value = '';
+        document.getElementById('new-topping-ja').value = '';
+        
+        renderToppingList();
+        showToast("토핑 추가 완료!");
+    }
+
+    function openAddFlavor(cat) { currentAddCat = cat; goPage('AdminAdd'); }
+    
+    function saveNewFlavor() {
+        const koInput = document.getElementById('in-ko'); 
+        const ko = koInput.value.trim();
+        if(!ko) { 
+            alert("한국어 이름은 필수입니다!"); 
+            koInput.focus(); 
+            return; 
+        }
+        const newF = { 
+            ko: ko, 
+            en: document.getElementById('in-en').value.trim() || ko, 
+            "zh-CN": document.getElementById('in-zhCN').value.trim() || ko, 
+            "zh-TW": document.getElementById('in-zhTW').value.trim() || ko, 
+            ja: document.getElementById('in-ja').value.trim() || ko 
+        };
+        if (!Array.isArray(masterFlavors[currentAddCat])) masterFlavors[currentAddCat] = []; 
+        masterFlavors[currentAddCat].push(newF); 
+        saveData(); 
+        showToast("도감에 추가 성공!");
+        document.querySelectorAll('.admin-input').forEach(i => i.value = ''); 
+        document.activeElement.blur(); 
+        goPage('AdminDaily'); 
+    }
+    
+    function updateExBtn(v) { 
+        tempExtra = v; 
+        document.querySelectorAll('.extra-select button').forEach(b => b.classList.remove('active')); 
+        document.getElementById('ex-'+v).classList.add('active'); 
+    }
+    
+    function confirmSwap() { 
+        if(editingSlotIdx >= 0 && selectedFromMaster) { 
+            currentDaily[editingSlotIdx] = { 
+                ko: selectedFromMaster.ko, 
+                extra: tempExtra, 
+                soldOut: false,
+                toppings: [...tempToppings]
+            }; 
+            saveData(); 
+            showToast("슬롯 교체 완료!"); 
+            goPage('AdminDaily'); 
+        } 
+    }
+</script>
+</body>
+</html>
