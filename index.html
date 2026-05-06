@@ -1,3 +1,4 @@
+<!-- index.html -->
 <!DOCTYPE html>
 <html lang="ko">
 <head>
@@ -517,7 +518,7 @@
             {ko: "딸기요거트", en: "Strawberry Yogurt", "zh-CN": "草莓酸奶", "zh-TW": "草莓優格", ja: "イチゴヨーグルト"},
             {ko: "블루베리요거트", en: "Blueberry Yogurt", "zh-CN": "蓝莓酸奶", "zh-TW": "藍莓優格", ja: "ブルーベリーヨーグルト"},
             {ko: "플레인요거트", en: "Plain Yogurt", "zh-CN": "原味酸奶", "zh-TW": "原味優格", ja: "プレーンヨーグルト"},
-            {ko: "라즈베리요거트", en: "Raspberry Yogurt", "zh-CN": "树莓酸奶", "zh-TW": "覆盆子優格", ja: "ラズベリーヨーグルト"},
+            {ko: "라즈베리요거트", en: "Raspberry Yogurt", "zh-CN": "树莓酸奶", "zh-TW": "覆盆子優格", ja: "ラズ베리ヨ거트"},
             {ko: "샤인머스캣요거트", en: "Shine Muscat Yogurt", "zh-CN": "阳光玫瑰酸奶", "zh-TW": "麝香葡萄優格", ja: "シャインマスカットヨーグルト"}
         ],
         General: [
@@ -573,7 +574,10 @@
             toppingSelection: "Topping Selection",
             selectToppings: "Please select toppings",
             confirmSelection: "Confirm Selection",
-            noTopping: "No Topping"
+            noTopping: "No Topping",
+
+            /* ✅ 추가: 소르베 라벨(우유 없음) */
+            nonDairy: "Non-dairy"
         },
         'zh-CN': { 
             container: "选择方式", 
@@ -594,7 +598,10 @@
             toppingSelection: "配料选择",
             selectToppings: "请选择配料",
             confirmSelection: "确认选择",
-            noTopping: "不要配料"
+            noTopping: "不要配料",
+
+            /* ✅ 추가 */
+            nonDairy: "不含乳制品"
         },
         'zh-TW': { 
             container: "選擇方式", 
@@ -615,7 +622,10 @@
             toppingSelection: "配料選擇",
             selectToppings: "請選擇配料",
             confirmSelection: "確認選擇",
-            noTopping: "不要配料"
+            noTopping: "不要配料",
+
+            /* ✅ 추가 */
+            nonDairy: "不含乳製品"
         },
         'ja': { 
             container: "スタイルを選択", 
@@ -636,7 +646,10 @@
             toppingSelection: "トッピング選択",
             selectToppings: "トッピングを選択してください",
             confirmSelection: "選択完了",
-            noTopping: "トッピングなし"
+            noTopping: "トッピングなし",
+
+            /* ✅ 추가 */
+            nonDairy: "乳製品なし"
         },
         'ko': { 
             container: "스타일 선택", 
@@ -657,7 +670,10 @@
             toppingSelection: "토핑 선택",
             selectToppings: "원하는 토핑을 선택해주세요",
             confirmSelection: "선택 완료",
-            noTopping: "토핑 없음"
+            noTopping: "토핑 없음",
+
+            /* ✅ 추가 */
+            nonDairy: "우유 없음"
         }
     };
 
@@ -666,6 +682,12 @@
     function getToppingName(topping) {
         if (typeof topping === 'string') return topping;
         return topping[currentLang] || topping.ko;
+    }
+
+    /* ✅ 추가: 어떤 슬롯이 Sorbet(소르베)인지 판별 */
+    function isSorbetSlot(slotKo) {
+        const list = getSafeArray(masterFlavors, 'Sorbet');
+        return list.some(m => m.ko === slotKo);
     }
 
     function saveData() { 
@@ -745,7 +767,7 @@
     function goPage(id) {
         document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
         document.getElementById('page' + id).classList.add('active');
-        if(id === 'Admin') { /* 메인 관리자 페이지 */ }
+        if(id === 'Admin') { }
         if(id === 'AdminDaily') renderAdminCurrent();
         if(id === 'AdminList') renderMasterList();
         if(id === 'AdminTopping') renderToppingList();
@@ -887,9 +909,16 @@
         btn.setAttribute('data-ko', slot.ko);
         
         let dispEx = (currentItem.container === 'Cup') ? slot.extra : (slot.extra > 0 ? 1000 : 0);
+
         let bestBadge = (slot.ko === '소금우유' || slot.ko === '피스타치오') 
             ? `<span style="color: var(--alert-red); font-weight: 900; font-size: 0.75rem; letter-spacing: 1px; margin-bottom: 2px;">BEST</span>` 
             : '';
+
+        /* ✅ 추가: 소르베(우유 없음) 라벨 - BEST처럼 버튼 상단에 노출 */
+        let nonDairyBadge = '';
+        if (isSorbetSlot(slot.ko)) {
+            nonDairyBadge = `<span style="color: var(--point-green); font-weight: 900; font-size: 0.75rem; letter-spacing: 0.5px; margin-bottom: 2px;">${getI18n('nonDairy')}</span>`;
+        }
         
         let toppingBadge = '';
         if (slot.toppings && slot.toppings.length > 0) {
@@ -899,6 +928,7 @@
 
         btn.innerHTML = `
             ${bestBadge}
+            ${nonDairyBadge}
             <strong style="font-size:0.88rem;">${fullData ? (fullData[currentLang] || fullData.ko) : slot.ko}</strong>
             <small style="font-size:0.72rem; color:#757575;">${slot.ko}</small>
             ${dispEx > 0 ? `<span class="extra-cost">+${dispEx}₩</span>` : ''}
