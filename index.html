@@ -1,4 +1,3 @@
-<!-- index.html -->
 <!DOCTYPE html>
 <html lang="ko">
 <head>
@@ -124,6 +123,41 @@
             width: 65px; padding: 12px; background: #ffebee; 
             border: 1px solid #ffcdd2; color: #c62828; font-size: 0.85rem; 
             flex-shrink: 0; border-radius: 12px; transition: all 0.3s ease; 
+        }
+
+        /* ✅ 주문서 항목별 삭제 버튼 스타일 */
+        .order-item {
+            padding: 12px 0;
+            border-bottom: 1px solid #eee;
+            position: relative;
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+        }
+        .order-item-content {
+            flex: 1;
+        }
+        .order-item-delete {
+            width: 50px !important;
+            height: 50px;
+            padding: 0 !important;
+            margin: 0 !important;
+            background: #ffebee;
+            border: 1px solid #ffcdd2;
+            color: #c62828;
+            font-size: 1.2rem;
+            border-radius: 10px;
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .order-item-delete:active {
+            transform: scale(0.9);
+            background: #c62828;
+            color: white;
         }
 
         @keyframes pulseAlertSoft {
@@ -518,7 +552,7 @@
             {ko: "딸기요거트", en: "Strawberry Yogurt", "zh-CN": "草莓酸奶", "zh-TW": "草莓優格", ja: "イチゴヨーグルト"},
             {ko: "블루베리요거트", en: "Blueberry Yogurt", "zh-CN": "蓝莓酸奶", "zh-TW": "藍莓優格", ja: "ブルーベリーヨーグルト"},
             {ko: "플레인요거트", en: "Plain Yogurt", "zh-CN": "原味酸奶", "zh-TW": "原味優格", ja: "プレーンヨーグルト"},
-            {ko: "라즈베리요거트", en: "Raspberry Yogurt", "zh-CN": "树莓酸奶", "zh-TW": "覆盆子優格", ja: "ラズ베리ヨ거트"},
+            {ko: "라즈베리요거트", en: "Raspberry Yogurt", "zh-CN": "树莓酸奶", "zh-TW": "覆盆子優格", ja: "ラズベリーヨーグルト"},
             {ko: "샤인머스캣요거트", en: "Shine Muscat Yogurt", "zh-CN": "阳光玫瑰酸奶", "zh-TW": "麝香葡萄優格", ja: "シャインマスカットヨーグルト"}
         ],
         General: [
@@ -575,8 +609,6 @@
             selectToppings: "Please select toppings",
             confirmSelection: "Confirm Selection",
             noTopping: "No Topping",
-
-            /* ✅ 추가: 소르베 라벨(우유 없음) */
             nonDairy: "Non-dairy"
         },
         'zh-CN': { 
@@ -599,8 +631,6 @@
             selectToppings: "请选择配料",
             confirmSelection: "确认选择",
             noTopping: "不要配料",
-
-            /* ✅ 추가 */
             nonDairy: "不含乳制品"
         },
         'zh-TW': { 
@@ -623,8 +653,6 @@
             selectToppings: "請選擇配料",
             confirmSelection: "確認選擇",
             noTopping: "不要配料",
-
-            /* ✅ 추가 */
             nonDairy: "不含乳製品"
         },
         'ja': { 
@@ -647,8 +675,6 @@
             selectToppings: "トッピングを選択してください",
             confirmSelection: "選択完了",
             noTopping: "トッピングなし",
-
-            /* ✅ 추가 */
             nonDairy: "乳製品なし"
         },
         'ko': { 
@@ -671,8 +697,6 @@
             selectToppings: "원하는 토핑을 선택해주세요",
             confirmSelection: "선택 완료",
             noTopping: "토핑 없음",
-
-            /* ✅ 추가 */
             nonDairy: "우유 없음"
         }
     };
@@ -684,7 +708,6 @@
         return topping[currentLang] || topping.ko;
     }
 
-    /* ✅ 추가: 어떤 슬롯이 Sorbet(소르베)인지 판별 */
     function isSorbetSlot(slotKo) {
         const list = getSafeArray(masterFlavors, 'Sorbet');
         return list.some(m => m.ko === slotKo);
@@ -914,7 +937,6 @@
             ? `<span style="color: var(--alert-red); font-weight: 900; font-size: 0.75rem; letter-spacing: 1px; margin-bottom: 2px;">BEST</span>` 
             : '';
 
-        /* ✅ 추가: 소르베(우유 없음) 라벨 - BEST처럼 버튼 상단에 노출 */
         let nonDairyBadge = '';
         if (isSorbetSlot(slot.ko)) {
             nonDairyBadge = `<span style="color: var(--point-green); font-weight: 900; font-size: 0.75rem; letter-spacing: 0.5px; margin-bottom: 2px;">${getI18n('nonDairy')}</span>`;
@@ -1154,6 +1176,21 @@
         goPage(5); 
     }
     
+    /* ✅ 주문서 항목 삭제 기능 추가 */
+    function deleteOrderItem(index) {
+        if (index >= 0 && index < cart.length) {
+            cart.splice(index, 1);
+            renderBill(document.getElementById('show-staff-btn').innerText.includes('✅'));
+            showToast("항목이 삭제되었습니다");
+            
+            // 장바구니가 비었으면 결제 선택 페이지로 이동
+            if (cart.length === 0) {
+                showToast("장바구니가 비었습니다");
+                setTimeout(() => goPage(1), 1000);
+            }
+        }
+    }
+    
     function renderBill(forceKorean = false) {
         const div = document.getElementById('final-bill'); 
         const payDiv = document.getElementById('payment-method-display'); 
@@ -1210,10 +1247,13 @@
                 return translatedName + toppingInfo;
             }).join(', ');
 
-            return `<div style="padding:10px 0; border-bottom:1px solid #eee;">
-                #${i+1} <b>${containerText} ${item.size||''}</b>${timeInfo}<br>
-                ${flavorListText} 
-                <span style="float:right">${itemTotal.toLocaleString()}₩</span>
+            return `<div class="order-item">
+                <div class="order-item-content">
+                    #${i+1} <b>${containerText} ${item.size||''}</b>${timeInfo}<br>
+                    ${flavorListText} 
+                    <span style="float:right; font-weight:bold; color:var(--point-green);">${itemTotal.toLocaleString()}₩</span>
+                </div>
+                <button class="order-item-delete" onclick="deleteOrderItem(${i})" title="삭제">🗑️</button>
             </div>`;
         }).join('');
         
